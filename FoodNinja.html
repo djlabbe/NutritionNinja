@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+            <title>Froot | Pangaea</title>
+     </head>
+     <body>
+          <canvas id="canvas" width=900 height=506></canvas>
+          <script>
+          //Canvas and Update Controls
+          var canvas = document.getElementById("canvas");
+              canvas.addEventListener("mousedown", notify);
+              canvas.addEventListener("mouseup", notify);
+              canvas.addEventListener("mousemove", notify);
+          var ctx = canvas.getContext("2d");
+          var background = new Image();
+               background.src = "img/bg.png";
+          var index = -1;
+          var framesDown;
+          var mclicked = false;      
+          //Score System
+          var score = 0;
+          var diff = 5;
+          var scoreInc = 50;
+          var currentFood = [];
+          //Audio
+          var bgLoop = new Audio("audio/proctor.mp3");
+               bgLoop.volume = 0.33;
+               bgLoop.loop = true;
+               bgLoop.play();
+          var sliceSound = new Audio("audio/slice.mp3");
+          var unhealthySound = new Audio("audio/unhealthy.wav");
+          var plateSound = new Audio("audio/plate.wav");
+          //Graphics
+          var fruitImages = ["img/apple.png","img/watermelon.png","img/banana.png"];
+          var vegeImages = ["img/broc.png","img/cabbage.png","img/pumpkin.png"];
+          var dairyImages = ["img/yogurt.png","img/cheese.png","img/milk.png"];
+          var grainImages = ["img/bread.png","img/bagel.png","img/muffin.png"];
+          var meatImages = ["img/steak.png", "img/chicken.png", "img/salmon.png"];
+          var unhealthyImages = ["img/burger.png","img/icecream.png","img/fries.png"];
+         //Reusable functions
+          var foodReset = function() {
+                    this.x = Math.floor((Math.random() * 850) + 1);
+                    this.y = 505;
+                    this.dx = (Math.random()-0.5)*2.5;
+                    this.dy = -((Math.random()*4.3)+3.5);
+          };
+          var foodDraw = function () {
+                    ctx.drawImage(this.image, this.x, this.y);
+          };
+          var foodUpdate = function() {
+                    this.x += this.dx;
+                    this.y += this.dy;
+                    this.dy += 0.05;
+                    if (this.y > canvas.height)
+                         kill(this); 
+          };
+          var scoreDraw = function () {
+               ctx.drawImage(this.images[this.img_select], this.x, this.y);
+          };
+          var scoreUpdate = function () {
+               this.count >= this.maxServings ? this.img_select = this.maxServings : this.img_select = this.count;
+          };
+          
+          //Game Objects
+          function food(type, img){
+               this.width = 75;
+               this.height = 75;
+               this.type = type;
+               this.image = new Image();
+               this.image.src = img;
+               this.notify = function(event) {
+                    if (mclicked == true && pointCollide(this, event.offsetX, event.offsetY)) {
+                         sliceSound.play();
+                         kill(this);
+                         score += scoreInc;
+                         switch(this.type) {
+                              case 0: scoreBoard[0].count++; break;
+                              case 1: scoreBoard[1].count++; break;
+                              case 2: scoreBoard[2].count++; break;
+                              case 3: scoreBoard[3].count++; break;
+                              case 4: scoreBoard[4].count++; break;
+                         }
+                    }
+               }
+               this.update = foodUpdate;
+               this.draw = foodDraw;
+               this.reset = foodReset;
+          };
+
+          function unhealthy_food(img, width, height) {
+               this.width = width;
+               this.height = height;
+               this.image = new Image();
+               this.image.src = img;
+               this.notify = function(event) {
+                    if (mclicked == true && pointCollide(this, event.offsetX, event.offsetY)) {
+                         unhealthySound.play();
+                         kill(this);
+                         score > 1000 ? score -= 1000 : score = 0;
+                    }
+               }
+               this.draw = foodDraw;
+               this.update = foodUpdate;
+               this.reset = foodReset;
+          };
+
+          //Scoreboard Objects
+          function fruit_score() {
+               this.x = 713;
+               this.y = 39;
+               this.count = 0;
+               this.maxServings = 2;
+               this.img_select = 0;
+               this.imageLibrary = ["img/F_0.png","img/F_1.png","img/F_2.png"];
+               this.images = [];
+               for (var i = 0; i < this.imageLibrary.length; i++) {
+                    var tempImg = new Image();
+                    tempImg.src = this.imageLibrary[i];
+                    this.images.push(tempImg);
+               }
+               this.draw = scoreDraw;
+               this.update = scoreUpdate;
+          };
+
+          function vege_score() {
+               this.x = 713;
+               this.y = 39;
+               this.count = 0;
+               this.maxServings = 3;
+               this.img_select = 0;
+               this.imageLibrary = ["img/V_0.png","img/V_1.png","img/V_2.png","img/V_3.png"];
+               this.images = [];
+               for (var i = 0; i < this.imageLibrary.length; i++) {
+                    var tempImg = new Image();
+                    tempImg.src = this.imageLibrary[i];
+                    this.images.push(tempImg);
+               }
+               this.draw = scoreDraw;
+               this.update = scoreUpdate;
+          }
+
+          function dairy_score() {
+               this.x = 713;
+               this.y = 39;
+               this.count = 0;
+               this.maxServings = 3;
+               this.img_select = 0;
+               this.imageLibrary = ["img/D_0.png","img/D_1.png","img/D_2.png","img/D_3.png"];
+               this.images = [];
+               for (var i = 0; i < this.imageLibrary.length; i++) {
+                    var tempImg = new Image();
+                    tempImg.src = this.imageLibrary[i];
+                    this.images.push(tempImg);
+               }
+               this.draw = scoreDraw;
+               this.update = scoreUpdate;
+          };
+
+          function grain_score() {
+               this.x = 713;
+               this.y = 39;
+               this.count = 0;
+               this.maxServings = 6;
+               this.img_select = 0;
+               this.imageLibrary = ["img/G_0.png","img/G_1.png","img/G_2.png","img/G_3.png","img/G_4.png","img/G_5.png","img/G_6.png"]
+               this.images = [];
+              for (var i = 0; i < this.imageLibrary.length; i++) {
+                    var tempImg = new Image();
+                    tempImg.src = this.imageLibrary[i];
+                    this.images.push(tempImg);
+               }
+               this.draw = scoreDraw;
+               this.update = scoreUpdate;
+          };
+
+          function meat_score() {
+               this.x = 713;
+               this.y = 39;
+               this.count = 0;
+               this.maxServings = 2;
+               this.img_select = 0;
+               this.imageLibrary = ["img/P_0.png","img/P_1.png","img/P_2.png"]
+               this.images = [];
+               for (var i = 0; i < this.imageLibrary.length; i++) {
+                    var tempImg = new Image();
+                    tempImg.src = this.imageLibrary[i];
+                    this.images.push(tempImg);
+               }
+               this.draw = scoreDraw;
+               this.update = scoreUpdate;
+          };
+
+          //Game Setup
+          var scoreBoard = [new fruit_score(), new vege_score(), new dairy_score(), new grain_score(), new meat_score()];
+
+          var foodLibrary = new Array(6);
+          for (var i = 0; i < 6; i++) {
+               foodLibrary[i] = new Array(0);
+          }
+
+          for (var i=0; i < fruitImages.length ; i++) {
+               foodLibrary[0].push(new food(0, fruitImages[i]));
+               foodLibrary[1].push(new food(1, vegeImages[i]));
+               foodLibrary[2].push(new food(2, dairyImages[i]));
+               foodLibrary[3].push(new food(3, grainImages[i]));
+               foodLibrary[4].push(new food(4, meatImages[i]));
+               foodLibrary[5].push(new food(5, unhealthyImages[i]));
+          }
+     
+          //Game Functions
+          function gameloop() {
+               update();
+               draw();
+          };
+
+          function notify(event) {
+               if (event){
+                    if (event.type == "mousedown") {
+                         mclicked = true;
+                         framesDown = 60;
+                    }
+                    if (event.type =="mouseup") {
+                         mclicked = false;
+                    }
+                    for (var i = 0; i < currentFood.length; i++){
+                         currentFood[i].notify(event);
+                    }
+               }
+          };
+
+          function update() {
+               --framesDown;
+               if(framesDown < 1) 
+                    mclicked = false;
+               for (var i = 0; i < scoreBoard.length; i++) {
+                    scoreBoard[i].update();
+               }
+               
+               if(currentFood.length < 1) {
+                    waveCount = Math.floor((Math.random() * 4) + diff);
+                    var wx = 0;
+                    var wy = 0;
+                    for (var i = 0; i < waveCount; i++) {
+                         wx = Math.floor((Math.random() * 6));
+                         wy = Math.floor((Math.random() * 3));
+                         foodLibrary[wx][wy].reset();
+                         currentFood.push(foodLibrary[wx][wy]);
+                    }
+               }
+              
+               for (i = 0; i < currentFood.length; i++){
+                    currentFood[i].update();
+               }
+               
+               if ((scoreBoard[0].count >= 2) && (scoreBoard[1].count >= 3) && 
+                    (scoreBoard[2].count >= 3) && (scoreBoard[3].count >= 6) && (scoreBoard[4].count >= 2)) {
+                    plateSound.play()
+                    diff+=2;
+                    scoreInc+=50;
+
+                    for (var i = 0; i < scoreBoard.length; i++) {
+                         scoreBoard[i].count = 0;
+                    }
+               }
+          };
+
+          function draw() {
+               ctx.clearRect(0,0, canvas.width, canvas.height);
+               ctx.drawImage(background,0,0);
+               ctx.textAlign="center";
+               ctx.font = "35pt Arial";
+               ctx.fillStyle = "#fff";
+               ctx.fillText(score, canvas.width/2,72);
+
+               for (var i = 0; i < scoreBoard.length; i++) {
+                    scoreBoard[i].draw();
+               }
+
+               for (i = 0; i < currentFood.length; i++){
+                    currentFood[i].draw();
+               }
+
+          };
+
+          function pointCollide(sprite, x, y) {
+               if (x > sprite.x && x < sprite.x + sprite.width && y > sprite.y &&y < sprite.y + sprite.height) 
+                    return true;
+               return false;
+          };
+
+          var index = -1;
+          function kill(sprite) {
+               for (i = 0; i < currentFood.length; i++){
+                    index = -1;
+                    index = currentFood.indexOf(sprite);
+                    if (index > -1)
+                         currentFood.splice(index, 1);
+               }
+          };
+          setInterval(gameloop, 1000/60); //Calls gameloop every 16.67 milliseconds (60 frames per second).
+          </script>
+     </body>
+</html>
